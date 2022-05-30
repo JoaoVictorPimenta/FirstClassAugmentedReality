@@ -7,18 +7,52 @@
 
 import UIKit
 import RealityKit
+import ARKit
 
-class ViewController: UIViewController {
+class ViewController: UIViewController, ARSessionDelegate {
     
     @IBOutlet var arView: ARView!
     
-    override func viewDidLoad() {
-        super.viewDidLoad()
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
         
-        // Load the "Box" scene from the "Experience" Reality File
-        let boxAnchor = try! Experience.loadBox()
+        let configuration = ARImageTrackingConfiguration()
         
-        // Add the box anchor to the scene
-        arView.scene.anchors.append(boxAnchor)
+        if let imagesToTrack = ARReferenceImage.referenceImages(inGroupNamed: "AR Resources", bundle: Bundle.main) {
+            configuration.trackingImages = imagesToTrack
+            configuration.maximumNumberOfTrackedImages = 2
+        }
+        
+        arView.session.run(configuration)
+        arView.session.delegate = self
+    }
+    
+    func session(_ session: ARSession, didAdd anchors: [ARAnchor]) {
+        
+        for anchor in anchors {
+            
+            guard let imageAnchor = anchor as? ARImageAnchor else {return}
+            
+            if let imageName = imageAnchor.name, imageName == "CARTA LIBERDADE" {
+                let entity = AnchorEntity(anchor: imageAnchor)
+                
+                if let scene = try? Experience.loadBox() {
+                    if let cup = scene.findEntity(named: "cup") {
+                        entity.addChild(cup)
+                        arView.scene.addAnchor(entity)
+                    }
+                }
+            }
+            if let imageName = imageAnchor.name, imageName == "unicornio" {
+                let entity = AnchorEntity(anchor: imageAnchor)
+                
+                if let scene = try? Experience.loadSnowboard() {
+                    if let snowboard = scene.findEntity(named: "snowboardzin") {
+                        entity.addChild(snowboard)
+                        arView.scene.addAnchor(entity)
+                    }
+                }
+            }
+        }
     }
 }
